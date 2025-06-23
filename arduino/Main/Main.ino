@@ -1,0 +1,181 @@
+/*
+
+  WiFi UDP Send and Receive String
+
+ This sketch wait an UDP packet on localPort using the WiFi module.
+
+ When a packet is received an Acknowledge packet is sent to the client on port remotePort
+
+ created 30 December 2012
+
+ by dlf (Metodo2 srl)
+
+ */
+
+#include <SPI.h>
+#include <WiFiNINA.h>
+#include <WiFiUdp.h>
+#include <Servo.h>
+
+int status = WL_IDLE_STATUS;
+#include "arduino_secrets.h"
+///////please enter your sensitive data in the Secret tab/arduino_secrets.h
+char ssid[] = SECRET_SSID;        // your network SSID (name)
+char pass[] = SECRET_PASS;    // your network password (use for WPA, or use as key for WEP)
+int keyIndex = 0;            // your network key Index number (needed only for WEP)
+
+unsigned int localPort = 2390;      // local port to listen on
+
+char packetBuffer[256]; //buffer to hold incoming packet
+char  ReplyBuffer[] = "acknowledged";       // a string to send back
+
+WiFiUDP Udp;
+
+// parameters for actuation
+Servo servo0;
+Servo servo1;
+Servo servo2;
+Servo servo3;
+int minUs = 1000;
+int maxUs = 2000;
+float con[4];
+unsigned long prevMillis = 0;
+bool broken = false;
+
+void setup() {
+
+  //Initialize serial and wait for port to open:
+
+  Serial.begin(9600);
+  pinMode(13, OUTPUT);      // set the LED pin mode
+
+
+  while (!Serial) {
+    ; // wait for serial port to connect. Needed for native USB port only
+  }
+
+  servo0.attach(10, minUs, maxUs);
+  servo1.attach(9, minUs, maxUs);
+  servo2.attach(6, minUs, maxUs);
+  servo3.attach(5, minUs, maxUs);
+  setZero();
+
+  // check for the WiFi module:
+
+  if (WiFi.status() == WL_NO_MODULE) {
+    Serial.println("Communication with WiFi module failed!");
+    // don't continue
+    while (true);
+  }
+
+  String fv = WiFi.firmwareVersion();
+
+  if (fv < WIFI_FIRMWARE_LATEST_VERSION) {
+    Serial.println("Please upgrade the firmware");
+  }
+
+  // attempt to connect to Wifi network:
+  while (status != WL_CONNECTED) {
+    Serial.print("Attempting to connect to SSID: ");
+    Serial.println(ssid);
+    // Connect to WPA/WPA2 network. Change this line if using open or WEP network:
+    status = WiFi.begin(ssid, pass);
+
+    digitalWrite(LED_BUILTIN, HIGH);      // blinking animation when attempting to connect
+    delay(500);
+    digitalWrite(LED_BUILTIN, LOW);
+    
+    // wait for connection:
+    delay(1000);
+  }
+
+  Serial.println("Connected to wifi");
+  printWifiStatus();
+  digitalWrite(LED_BUILTIN, HIGH);      // light up LED
+
+
+  Serial.println("\nStarting connection to server...");
+
+  // if you get a connection, report back via serial:
+  Udp.begin(localPort);
+}
+
+void loop() {
+
+  // if there's data available, read a packet
+
+  int packetSize = Udp.parsePacket();
+
+  if (packetSize) {
+    Serial.print("Received packet of size ");
+    Serial.println(packetSize);
+    Serial.print("From ");
+    IPAddress remoteIp = Udp.remoteIP();
+    Serial.print(remoteIp);
+    Serial.print(", port ");
+    Serial.println(Udp.remotePort());
+
+    // read the packet into packetBufffer
+    int len = Udp.read(packetBuffer, 255);
+    if (len > 0) {
+      packetBuffer[len] = 0;
+    }
+
+    update_con(packetBuffer);
+    Serial.print("With content ");
+    Serial.print(con[0]);
+    Serial.print(", ");
+    Serial.print(con[1]);
+    Serial.print(", ");
+    Serial.print(con[2]);
+    Serial.print(", ");
+    Serial.println(con[3]);
+   
+    // send action (servo library goes from 0 to 180 deg)
+    servo0.write(con[0]*180);
+    servo1.write(con[1]*180);
+    servo2.write(con[2]*180);
+    servo3.write(con[3]*180);
+
+    // send a reply, to the IP address and port that sent us the packet we received
+    Udp.beginPacket(Udp.remoteIP(), Udp.remotePort());
+    Udp.write(ReplyBuffer);
+    Udp.endPacket();
+
+  }
+}
+
+void printWifiStatus() {
+
+  // print the SSID of the network you're attached to:
+  Serial.print("SSID: ");
+  Serial.println(WiFi.SSID());
+
+  // print your board's IP address:
+  IPAddress ip = WiFi.localIP();
+  Serial.print("IP Address: ");
+  Serial.println(ip);
+
+  // print the received signal strength:
+  long rssi = WiFi.RSSI();
+  Serial.print("signal strength (RSSI):");
+  Serial.print(rssi);
+  Serial.println(" dBm");
+}
+
+void update_con(String num){
+  int res = 3;
+  int digits = (num.length()/res);
+  for (int i; i < digits; i++){
+    int start = i*res;
+    int end = (i + 1)*res;
+    con[i] = num.substring(start,end).toFloat()/pow(10,res);
+  }
+}
+
+void setZero(){
+  servo0.write(0);
+  servo1.write(90);
+  servo2.write(90);
+  servo3.write(90);
+}

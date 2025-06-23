@@ -1,0 +1,6 @@
+#define SECRET_SSID "Fairphone 3 AP_3076"
+#define SECRET_PASS "password"
+// #define SECRET_SSID "dlink-65C0"
+// #define SECRET_PASS "tcoyo42236"
+// #define SECRET_SSID "Skynet"
+// #define SECRET_PASS "TerminatorT800"
