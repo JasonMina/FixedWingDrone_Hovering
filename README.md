@@ -2,8 +2,10 @@
 
 A control system for achieving stable vertical hovering in fixed-wing drones using PID controllers and motion capture feedback. 
 
-# Demo
-Demo Video Of Flat-Winged drone hovering [Demo Video](./Flatty_Hovering.mp4)
+# Demo Video
+[![Fixed-Wing Drone Vertical Hovering Demo](https://img.youtube.com/vi/IpiCm1aso_w/maxresdefault.jpg)](https://youtu.be/IpiCm1aso_w)
+
+*Click the image above to watch the vertical hovering demonstration*
 
 ## Project Overview
 
